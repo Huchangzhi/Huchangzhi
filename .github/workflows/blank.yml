@@ -1,21 +1,46 @@
-- name: generate-snake-game-from-github-contribution-grid
-uses: Platane/snk@v3.2.0
-            
-  with:
-    # github user name to read the contribution graph from (**required**)
-    # using action context var `github.repository_owner` or specified user
-    github_user_name: ${{ github.repository_owner }}
+name: Update all images
 
-    # list of files to generate.
-    # one file per line. Each output can be customized with options as query string.
-    #
-    #  supported options:
-    #  - palette:     A preset of color, one of [github, github-dark, github-light]
-    #  - color_snake: Color of the snake
-    #  - color_dots:  Coma separated list of dots color.
-    #                 The first one is 0 contribution, then it goes from the low contribution to the highest.
-    #                 Exactly 5 colors are expected.
-    outputs: |
-      dist/github-snake.svg
-      dist/github-snake-dark.svg?palette=github-dark
-      dist/ocean.gif?color_snake=orange&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7dd9
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: fetch images
+        run: |
+          mkdir assets
+          curl 'https://skillicons.dev/icons?i=anaconda,bash,blender,c,cpp,cloudflare,discord,docker,git,github,githubactions,html,java,js,latex,linux,md,matlab,npm,powershell,py,regex,sublime,ubuntu,vim,vscode,windows,yarn&theme=light' > assets/skill-icons-light.svg
+          curl 'https://skillicons.dev/icons?i=anaconda,bash,blender,c,cpp,cloudflare,discord,docker,git,github,githubactions,html,java,js,latex,linux,md,matlab,npm,powershell,py,regex,sublime,ubuntu,vim,vscode,windows,yarn&theme=dark' > assets/skill-icons-dark.svg
+          curl 'https://github-readme-stats.vercel.app/api?username=Tiphereth-A&show_icons=true&hide_border=true&theme=buefy' > assets/github-stats-light.svg
+          curl 'https://github-readme-stats.vercel.app/api/top-langs/?username=Tiphereth-A&size_weight=0.5&count_weight=0.5&layout=compact&langs_count=8&hide_border=true&theme=buefy' > assets/github-langs-light.svg
+          curl 'https://github-profile-trophy.vercel.app/?username=Tiphereth-A&no-bg=true&no-frame=true&theme=flat' > assets/github-trophy-light.svg
+          curl 'https://github-readme-stats.vercel.app/api?username=Tiphereth-A&show_icons=true&hide_border=true&theme=tokyonight' > assets/github-stats-dark.svg
+          curl 'https://github-readme-stats.vercel.app/api/top-langs/?username=Tiphereth-A&size_weight=0.5&count_weight=0.5&layout=compact&langs_count=8&hide_border=true&theme=tokyonight' > assets/github-langs-dark.svg
+          curl 'https://github-profile-trophy.vercel.app/?username=Tiphereth-A&no-bg=true&no-frame=true&theme=tokyonight' > assets/github-trophy-dark.svg
+      
+      - name: generate github-contribution-grid-snake.svg
+        uses: Platane/snk/svg-only@v3
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          outputs: |
+            assets/github-contribution-grid-snake-light.svg
+            assets/github-contribution-grid-snake-dark.svg?palette=github-dark
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: push to the output branch
+        if: success()
+        uses: crazy-max/ghaction-github-pages@v4.0.0
+        with:
+          target_branch: images
+          build_dir: assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
